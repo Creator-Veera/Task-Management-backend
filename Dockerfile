@@ -1,14 +1,21 @@
-# Use Java 17 (Temurin)
-FROM eclipse-temurin:17-jdk
+# ----------- Stage 1: Build the application -----------
+FROM maven:3.9.6-eclipse-temurin-21 AS build
 
-# Set working directory
 WORKDIR /app
 
-# Copy the jar file
-COPY target/*.jar app.jar
+COPY pom.xml .
+COPY src ./src
 
-# Expose backend port
+RUN mvn -e -X -DskipTests clean package
+
+
+# ----------- Stage 2: Run the application -----------
+FROM eclipse-temurin:21-jdk
+
+WORKDIR /app
+
+COPY --from=build /app/target/*.jar app.jar
+
 EXPOSE 8080
 
-# Run the application
 ENTRYPOINT ["java", "-jar", "app.jar"]
