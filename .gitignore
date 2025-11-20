@@ -30,7 +30,6 @@ Thumbs.db
 .mvn/
 target/
 ### Environment Files ###
-/src/main/resources/application.properties
 
 application.yml
 
