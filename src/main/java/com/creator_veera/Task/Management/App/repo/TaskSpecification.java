@@ -4,45 +4,43 @@ package com.creator_veera.Task.Management.App.repo;
 import com.creator_veera.Task.Management.App.ENUM.Priority;
 import com.creator_veera.Task.Management.App.ENUM.Status;
 import com.creator_veera.Task.Management.App.model.Task;
-import jakarta.persistence.criteria.Expression;
+// import jakarta.persistence.criteria.Expression;
 import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.jpa.domain.Specification;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 public class TaskSpecification {
 
     public static Specification<Task> buildSpecification(
+            String userId,
             Status status,
             Priority priority,
             LocalDate dueDate,
             String q
     ) {
         return (root, query, cb) -> {
-            Predicate finalPredicate = cb.conjunction();
+            List<Predicate> predicates = new ArrayList<>();
 
+            if (userId != null && !userId.isEmpty()) {
+                predicates.add(cb.equal(root.get("userId"), userId));
+            }
             if (status != null) {
-                finalPredicate = cb.and(finalPredicate, cb.equal(root.get("status"), status));
+                predicates.add(cb.equal(root.get("status"), status));
             }
-
             if (priority != null) {
-                finalPredicate = cb.and(finalPredicate, cb.equal(root.get("priority"), priority));
+                predicates.add(cb.equal(root.get("priority"), priority));
             }
-
             if (dueDate != null) {
-                finalPredicate = cb.and(finalPredicate, cb.equal(root.get("dueDate"), dueDate));
+                predicates.add(cb.equal(root.get("dueDate"), dueDate));
+            }
+            if (q != null && !q.isEmpty()) {
+                predicates.add(cb.like(root.get("title"), "%" + q + "%"));
             }
 
-            if (q != null && !q.isBlank()) {
-                String likePattern = "%" + q.toLowerCase() + "%";
-                Expression<String> titleExp = cb.lower(root.get("title"));
-                Expression<String> descExp = cb.lower(root.get("description"));
-                Predicate titleLike = cb.like(titleExp, likePattern);
-                Predicate descLike = cb.like(descExp, likePattern);
-                finalPredicate = cb.and(finalPredicate, cb.or(titleLike, descLike));
-            }
-
-            return finalPredicate;
+            return cb.and(predicates.toArray(new Predicate[0]));
         };
     }
 }

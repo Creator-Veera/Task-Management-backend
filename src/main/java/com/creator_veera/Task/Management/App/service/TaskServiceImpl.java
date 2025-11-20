@@ -24,23 +24,16 @@ public class TaskServiceImpl implements TaskService{
     public TaskServiceImpl(TaskRepo repo) {
         this.repo = repo;
     }
-
     @Override
-    public Page<Task> getTaskByPage(Pageable pageable) {
-        return repo.findAll(pageable);
+     public Page<Task> getTaskByPageForUser(String userId, Pageable pageable) {
+        return repo.findAll(TaskSpecification.buildSpecification(userId, null, null, null, null), pageable);
     }
 
     @Override
-    public Page<Task> filterTask(Status status, Priority priority, LocalDate dueDate, String q, Pageable pageable) {
-        Specification<Task> spec = TaskSpecification.buildSpecification(status, priority,dueDate,q);
-        return repo.findAll(spec, pageable);
+    public Page<Task> filterTaskForUser(String userId, Status status, Priority priority, LocalDate dueDate, String q, Pageable pageable) {
+        return repo.findAll(TaskSpecification.buildSpecification(userId, status, priority, dueDate, q), pageable);
     }
 
-    @Override
-    public Task getTask(int id) {
-        Optional<Task> opt = repo.findById(id);
-        return opt.orElse(null);
-    }
 
     @Override
     public Task addTask(Task task) {
@@ -52,32 +45,34 @@ public class TaskServiceImpl implements TaskService{
         return repo.saveAll(tasks);
     }
 
-    @Override
-    public Task updateTask(int id, Task task) {
-        Optional<Task> opt = repo.findById(id);
-        if (opt.isPresent()) {
-            Task existing = opt.get();
-            // copy fields (adjust based on your entity)
-            existing.setTitle(task.getTitle());
-            existing.setDescription(task.getDescription());
-            existing.setStatus(task.getStatus());
-            existing.setPriority(task.getPriority());
-            existing.setDueDate(task.getDueDate());
-            existing.setUpdatedAt(task.getUpdatedAt());
-            return repo.save(existing);
-        }
-        return null;
-    }
 
     @Override
-    public void deleteTask(int id) {
-        repo.deleteById(id);
+    public void deleteTasksForUser(List<Integer> ids, String userId) {
+        ids.forEach(id -> deleteTaskForUser(id, userId));
+    }
+    @Override
+    public Task getTaskForUser(int id, String userId) {
+    return repo.findOne(TaskSpecification.buildSpecification(userId, null, null, null, null)
+                .and((root, query, cb) -> cb.equal(root.get("id"), id)))
+                .orElse(null);    
+    }
+    @Override
+    public Task updateTaskForUser(int id, Task task, String userId) {
+        Task existing = getTaskForUser(id, userId);
+        if (existing == null) return null;
+        existing.setTitle(task.getTitle());
+        existing.setDescription(task.getDescription());
+        existing.setStatus(task.getStatus());
+        existing.setPriority(task.getPriority());
+        existing.setDueDate(task.getDueDate());
+        return repo.save(existing);
+    }
+    @Override
+    public void deleteTaskForUser(int id, String userId) {
+        Task existing = getTaskForUser(id, userId);
+        if (existing != null) repo.delete(existing);
     }
 
-    @Override
-    public void deleteTasks(List<Integer> ids) {
-        List<Task> toDelete = repo.findAllById(ids);
-        repo.deleteAll(toDelete);
-    }
+    
 }
 

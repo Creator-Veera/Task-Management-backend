@@ -18,7 +18,8 @@ import java.util.List;
 @RestController
 @CrossOrigin
 @RequestMapping("/tasks")
-public class Taskcontroller {
+
+public class Taskcontroller{
 
     private final TaskService taskService;
 
@@ -32,11 +33,12 @@ public class Taskcontroller {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "id") String sortBy,
-            @RequestParam(defaultValue = "asc") String direction
+            @RequestParam(defaultValue = "asc") String direction,
+            @RequestHeader("X-User-Id") String userId  // NEW: get userId from frontend
     ) {
         Sort sort = direction.equalsIgnoreCase("desc") ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
         Pageable pageable = PageRequest.of(page, size, sort);
-        Page<Task> tasks = taskService.getTaskByPage(pageable);
+        Page<Task> tasks = taskService.getTaskByPageForUser(userId, pageable); // NEW: filter by user
         return ResponseEntity.ok(tasks);
     }
 
@@ -49,23 +51,18 @@ public class Taskcontroller {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "id") String sortBy,
-            @RequestParam(defaultValue = "asc") String direction
+            @RequestParam(defaultValue = "asc") String direction,
+            @RequestHeader("X-User-Id") String userId // NEW
     ) {
-        Sort sort = direction.equalsIgnoreCase("desc") ?
-                Sort.by(sortBy).descending() :
-                Sort.by(sortBy).ascending();
-
+        Sort sort = direction.equalsIgnoreCase("desc") ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
         Pageable pageable = PageRequest.of(page, size, sort);
-
-        Page<Task> tasks = taskService.filterTask(status, priority, dueDate, q, pageable);
-
+        Page<Task> tasks = taskService.filterTaskForUser(userId, status, priority, dueDate, q, pageable); // NEW
         return ResponseEntity.ok(tasks);
     }
 
-    // CRUD endpoints
     @GetMapping("/{id}")
-    public ResponseEntity<Task> getTask(@PathVariable int id) {
-        Task task = taskService.getTask(id);
+    public ResponseEntity<Task> getTask(@PathVariable int id, @RequestHeader("X-User-Id") String userId) {
+        Task task = taskService.getTaskForUser(id, userId); // NEW: check task belongs to this user
         if (task == null) {
             return ResponseEntity.noContent().build();
         }
@@ -73,31 +70,34 @@ public class Taskcontroller {
     }
 
     @PostMapping("/")
-    public ResponseEntity<Task> addTask(@RequestBody Task task) {
+    public ResponseEntity<Task> addTask(@RequestBody Task task, @RequestHeader("X-User-Id") String userId) {
+        task.setUserId(userId); // NEW: assign userId to task
         Task newTask = taskService.addTask(task);
         return ResponseEntity.status(HttpStatus.CREATED).body(newTask);
     }
 
     @PostMapping("/bulk")
-    public ResponseEntity<List<Task>> addListOfTasks(@RequestBody List<Task> tasks) {
+    public ResponseEntity<List<Task>> addListOfTasks(@RequestBody List<Task> tasks, @RequestHeader("X-User-Id") String userId) {
+        tasks.forEach(task -> task.setUserId(userId)); // NEW: assign userId to all tasks
         return ResponseEntity.ok(taskService.addListOfTasks(tasks));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Task> updateTask(@PathVariable int id, @RequestBody Task task) {
-        Task updated = taskService.updateTask(id, task);
+    public ResponseEntity<Task> updateTask(@PathVariable int id, @RequestBody Task task, @RequestHeader("X-User-Id") String userId) {
+        task.setUserId(userId); // ensure task belongs to user
+        Task updated = taskService.updateTaskForUser(id, task, userId); // NEW: update only if user matches
         return ResponseEntity.ok(updated);
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<String> deleteTask(@PathVariable int id) {
-        taskService.deleteTask(id);
+    public ResponseEntity<String> deleteTask(@PathVariable int id, @RequestHeader("X-User-Id") String userId) {
+        taskService.deleteTaskForUser(id, userId); // NEW
         return ResponseEntity.ok("Task deleted successfully");
     }
 
     @DeleteMapping
-    public ResponseEntity<String> deleteTasks(@RequestBody List<Integer> ids) {
-        taskService.deleteTasks(ids);
+    public ResponseEntity<String> deleteTasks(@RequestBody List<Integer> ids, @RequestHeader("X-User-Id") String userId) {
+        taskService.deleteTasksForUser(ids, userId); // NEW
         return ResponseEntity.ok("Selected tasks deleted successfully");
     }
 }
