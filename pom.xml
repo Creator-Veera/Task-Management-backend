@@ -11,7 +11,7 @@
 	<groupId>com.creator-veera</groupId>
 	<artifactId>Task-Management-App</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>Task-Management-App</name>
+	<name>LivingList</name>
 	<description>Spring Boot Project For Task Maganement</description>
 	<url/>
 	<licenses>
