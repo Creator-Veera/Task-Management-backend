@@ -37,7 +37,10 @@ public class TaskSpecification {
                 predicates.add(cb.equal(root.get("dueDate"), dueDate));
             }
             if (q != null && !q.isEmpty()) {
-                predicates.add(cb.like(root.get("title"), "%" + q + "%"));
+                predicates.add(cb.or(
+                cb.like(cb.lower(root.get("title")), "%" + q.toLowerCase() + "%"),
+                cb.like(cb.lower(root.get("description")), "%" + q.toLowerCase() + "%")
+                ));
             }
 
             return cb.and(predicates.toArray(new Predicate[0]));
